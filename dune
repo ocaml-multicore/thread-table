@@ -1,0 +1,5 @@
+(mdx
+ (package thread-table)
+ (deps
+  (package thread-table))
+ (files README.md))
