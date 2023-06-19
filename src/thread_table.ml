@@ -59,20 +59,30 @@ let find t k' =
   let i = k' land (n - 1) in
   find k' (Array.unsafe_get buckets i)
 
+(* Below we use [@poll error] to ensure that there are no safe-points where
+   thread switches might occur during critical sections. *)
+
+let[@poll error] update_buckets_atomically t old_buckets new_buckets =
+  t.buckets == old_buckets
+  && begin
+       t.buckets <- new_buckets;
+       t.rehash <- 0;
+       true
+     end
+
 let rec maybe_rehash t =
   let old_buckets = t.buckets in
   let new_n = t.rehash in
   if new_n <> 0 then
     let old_n = Array.length old_buckets in
     let new_buckets = Array.make new_n Nil in
-    if old_n < new_n then
+    if old_n * 2 = new_n then
       let new_bit = new_n lsr 1 in
       let rec loop i =
-        (* BEGIN ATOMIC *)
         if t.buckets == old_buckets then
           if old_n <= i then begin
-            t.buckets <- new_buckets;
-            t.rehash <- 0 (* END ATOMIC *)
+            if not (update_buckets_atomically t old_buckets new_buckets) then
+              maybe_rehash t
           end
           else begin
             let kvs = Array.unsafe_get old_buckets i in
@@ -84,14 +94,13 @@ let rec maybe_rehash t =
         else maybe_rehash t
       in
       loop 0
-    else
+    else if old_n = new_n * 2 then
       let old_bit = old_n lsr 1 in
       let rec loop i =
-        (* BEGIN ATOMIC *)
         if t.buckets == old_buckets then
           if new_n <= i then begin
-            t.buckets <- new_buckets;
-            t.rehash <- 0 (* END ATOMIC *)
+            if not (update_buckets_atomically t old_buckets new_buckets) then
+              maybe_rehash t
           end
           else begin
             Array.unsafe_set new_buckets i
@@ -103,32 +112,43 @@ let rec maybe_rehash t =
         else maybe_rehash t
       in
       loop 0
+    else maybe_rehash t
 
 let[@inline] maybe_rehash t = if t.rehash <> 0 then maybe_rehash t
 
-(* Explicitly disallow inlining of [add] and [remove] to avoid allocations
-   being moved inside their bodies. *)
+let[@poll error] add_atomically t buckets n i before after =
+  t.rehash = 0 && buckets == t.buckets
+  && before == Array.unsafe_get buckets i
+  && begin
+       Array.unsafe_set buckets i after;
+       let length = t.length + 1 in
+       t.length <- length;
+       if n < length && n < max_buckets_div_2 then t.rehash <- n * 2;
+       true
+     end
 
-let[@inline never] rec add t k' v' =
+let rec add t k' v' =
   maybe_rehash t;
   let buckets = t.buckets in
   let n = Array.length buckets in
   let i = k' land (n - 1) in
   let before = Array.unsafe_get buckets i in
   let after = Cons (k', v', before) in
-  (* BEGIN ATOMIC *)
-  if
-    t.rehash = 0 && buckets == t.buckets && before == Array.unsafe_get buckets i
-  then begin
-    Array.unsafe_set buckets i after;
-    let length = t.length + 1 in
-    t.length <- length;
-    if n < length && n < max_buckets_div_2 then t.rehash <- n * 2
-    (* END ATOMIC *)
-  end
-  else add t k' v'
+  if not (add_atomically t buckets n i before after) then add t k' v'
 
-let[@inline never] rec remove t k' =
+let[@poll error] remove_atomically t buckets n i before after removed =
+  t.rehash = 0 && buckets == t.buckets
+  && before == Array.unsafe_get buckets i
+  && ((not !removed)
+     || begin
+          Array.unsafe_set buckets i after;
+          let length = t.length - 1 in
+          t.length <- length;
+          if length * 4 < n && min_buckets < n then t.rehash <- n asr 1;
+          true
+        end)
+
+let rec remove t k' =
   let removed = ref false in
   maybe_rehash t;
   let buckets = t.buckets in
@@ -136,16 +156,4 @@ let[@inline never] rec remove t k' =
   let i = k' land (n - 1) in
   let before = Array.unsafe_get buckets i in
   let after = remove_first removed k' before in
-  (* BEGIN ATOMIC *)
-  if
-    t.rehash = 0 && buckets == t.buckets && before == Array.unsafe_get buckets i
-  then begin
-    if !removed then begin
-      Array.unsafe_set buckets i after;
-      let length = t.length - 1 in
-      t.length <- length;
-      if length * 4 < n && min_buckets < n then t.rehash <- n asr 1
-      (* END ATOMIC *)
-    end
-  end
-  else remove t k'
+  if not (remove_atomically t buckets n i before after removed) then remove t k'
