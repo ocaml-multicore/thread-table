@@ -5,7 +5,7 @@
 (authors "Vesa Karvonen <vesa.a.j.k@gmail.com>")
 (maintainers "Vesa Karvonen <vesa.a.j.k@gmail.com>")
 (homepage "https://github.com/ocaml-multicore/thread-table")
-(license "0BSD")
+(license "ISC")
 (package (name thread-table)
  (synopsis "A lock-free thread-safe integer keyed hash table")
  (depends
