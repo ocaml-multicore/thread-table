@@ -1,6 +1,6 @@
 (** A lock-free thread-safe [int]eger keyed hash table.
 
-    ⚠️ This is not {i domain-safe} — only {i thread-safe} within a single
+    ⚠️ This is not {i parallelism-safe} — only {i thread-safe} within a single
     domain. *)
 
 type 'v t

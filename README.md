@@ -5,7 +5,8 @@
 This experimental library implements a minimalist lock-free thread-safe integer
 keyed hash table.
 
-⚠️ This is not _domain-safe_ &mdash; only _thread-safe_ within a single domain.
+⚠️ This is not _parallelism-safe_ &mdash; only _thread-safe_ within a single
+domain.
 
 ## Development
 
