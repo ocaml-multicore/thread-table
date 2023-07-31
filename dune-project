@@ -10,6 +10,4 @@
  (synopsis "A lock-free thread-safe integer keyed hash table")
  (depends
   (ocaml (>= 4.08))
-  (mdx (and (>= 1.10.0) :with-test))
   (alcotest (and (>= 1.7.0) :with-test))))
-(using mdx 0.2)
