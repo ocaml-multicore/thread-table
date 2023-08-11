@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-Next version:
+## 1.0.0
 
 - Use bit mixing (@polytypic)
 - Change `find` to use `raise_notrace` for performance (@polytypic)
