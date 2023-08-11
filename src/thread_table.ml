@@ -25,7 +25,7 @@ let[@inline] remove_first removed k' = function
       else Cons (k, v, remove_first removed k' kvs)
 
 let rec find k' = function
-  | Nil -> raise Not_found
+  | Nil -> raise_notrace Not_found
   | Cons (k, v, kvs) -> if k == k' then v else find k' kvs
 
 let[@tail_mod_cons] rec filter bit chk = function

@@ -18,7 +18,9 @@ val length : 'v t -> int
 
 val find : 'v t -> int -> 'v
 (** [find t k] returns the current binding of [k] in hash table [t], or raises
-    [Not_found] if no such binding exists. *)
+    [Not_found] if no such binding exists.
+
+    ⚠️ This may use [raise_notrace] for performance reasons. *)
 
 val add : 'v t -> int -> 'v -> unit
 (** [add t k v] adds a binding of key [k] to value [v] to the hash table
