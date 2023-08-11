@@ -1,5 +1,8 @@
 (** A lock-free thread-safe [int]eger keyed hash table.
 
+    This is designed for associating thread specific state with threads within a
+    domain.
+
     ⚠️ This is not {i parallelism-safe} — only {i thread-safe} within a single
     domain. *)
 

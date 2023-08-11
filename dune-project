@@ -8,6 +8,7 @@
 (license "ISC")
 (package (name thread-table)
  (synopsis "A lock-free thread-safe integer keyed hash table")
+ (description "A high performance minimalist lock-free thread-safe integer keyed hash table designed for associating thread specific state with threads within a domain.")
  (depends
   (ocaml (>= 4.08))
   (alcotest (and (>= 1.7.0) :with-test))))
