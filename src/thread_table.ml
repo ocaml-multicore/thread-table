@@ -31,14 +31,14 @@ let rec find k' = function
 let[@tail_mod_cons] rec filter bit chk = function
   | Nil -> Nil
   | Cons (k, v, kvs) ->
-      if k land bit = chk then Cons (k, v, filter bit chk kvs)
+      if Mix.int k land bit = chk then Cons (k, v, filter bit chk kvs)
       else filter bit chk kvs
 
 let[@inline] filter bit chk = function
   | Nil -> Nil
-  | Cons (k, _, Nil) as kvs -> if k land bit = chk then kvs else Nil
+  | Cons (k, _, Nil) as kvs -> if Mix.int k land bit = chk then kvs else Nil
   | Cons (k, v, kvs) ->
-      if k land bit = chk then Cons (k, v, filter bit chk kvs)
+      if Mix.int k land bit = chk then Cons (k, v, filter bit chk kvs)
       else filter bit chk kvs
 
 let[@tail_mod_cons] rec append kvs tail =
@@ -54,9 +54,10 @@ let create () = { rehash = 0; buckets = Array.make min_buckets Nil; length = 0 }
 let length t = t.length
 
 let find t k' =
+  let h = Mix.int k' in
   let buckets = t.buckets in
   let n = Array.length buckets in
-  let i = k' land (n - 1) in
+  let i = h land (n - 1) in
   find k' (Array.unsafe_get buckets i)
 
 (* Below we use [@poll error] to ensure that there are no safe-points where
@@ -128,10 +129,11 @@ let[@poll error] add_atomically t buckets n i before after =
      end
 
 let rec add t k' v' =
+  let h = Mix.int k' in
   maybe_rehash t;
   let buckets = t.buckets in
   let n = Array.length buckets in
-  let i = k' land (n - 1) in
+  let i = h land (n - 1) in
   let before = Array.unsafe_get buckets i in
   let after = Cons (k', v', before) in
   if not (add_atomically t buckets n i before after) then add t k' v'
@@ -149,11 +151,12 @@ let[@poll error] remove_atomically t buckets n i before after removed =
         end)
 
 let rec remove t k' =
+  let h = Mix.int k' in
   let removed = ref false in
   maybe_rehash t;
   let buckets = t.buckets in
   let n = Array.length buckets in
-  let i = k' land (n - 1) in
+  let i = h land (n - 1) in
   let before = Array.unsafe_get buckets i in
   let after = remove_first removed k' before in
   if not (remove_atomically t buckets n i before after removed) then remove t k'
