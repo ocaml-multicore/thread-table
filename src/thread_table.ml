@@ -60,10 +60,11 @@ let find t k' =
   let i = h land (n - 1) in
   find k' (Array.unsafe_get buckets i)
 
-(* Below we use [@poll error] to ensure that there are no safe-points where
-   thread switches might occur during critical sections. *)
+(* Below we use [@poll error] and [@inline never] to ensure that there are no
+   safe-points where thread switches might occur during critical sections. *)
 
-let[@poll error] update_buckets_atomically t old_buckets new_buckets =
+let[@poll error] [@inline never] update_buckets_atomically t old_buckets
+    new_buckets =
   t.buckets == old_buckets
   && begin
        t.buckets <- new_buckets;
@@ -117,7 +118,7 @@ let rec maybe_rehash t =
 
 let[@inline] maybe_rehash t = if t.rehash <> 0 then maybe_rehash t
 
-let[@poll error] add_atomically t buckets n i before after =
+let[@poll error] [@inline never] add_atomically t buckets n i before after =
   t.rehash = 0 && buckets == t.buckets
   && before == Array.unsafe_get buckets i
   && begin
@@ -138,7 +139,8 @@ let rec add t k' v' =
   let after = Cons (k', v', before) in
   if not (add_atomically t buckets n i before after) then add t k' v'
 
-let[@poll error] remove_atomically t buckets n i before after removed =
+let[@poll error] [@inline never] remove_atomically t buckets n i before after
+    removed =
   t.rehash = 0 && buckets == t.buckets
   && before == Array.unsafe_get buckets i
   && ((not !removed)
