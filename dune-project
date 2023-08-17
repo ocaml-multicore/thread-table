@@ -6,6 +6,7 @@
 (maintainers "Vesa Karvonen <vesa.a.j.k@gmail.com>")
 (homepage "https://github.com/ocaml-multicore/thread-table")
 (license "ISC")
+(implicit_transitive_deps false)
 (package (name thread-table)
  (synopsis "A lock-free thread-safe integer keyed hash table")
  (description "A minimalist lock-free thread-safe integer keyed hash table with zero synchronization overhead on lookups designed for associating thread specific state with threads within a domain.")
